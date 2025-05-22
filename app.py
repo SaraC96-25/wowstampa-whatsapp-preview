@@ -32,13 +32,27 @@ if st.button("Cerca ordine"):
         ordine = get_order_details(order_input)
 
     if ordine:
-        phone = ordine.get("shipping_address", {}).get("phone", "").replace(" ", "").replace("-", "")
-        if phone:
-            st.success(f"📱 Numero trovato: {phone}")
+        # Recupera e pulisce il numero di telefono
+        raw_phone = ordine.get("shipping_address", {}).get("phone", "")
+        phone = ''.join(filter(str.isdigit, raw_phone))  # Rimuove tutto tranne cifre
 
-            ordine_pulito = order_input.replace("#WW", "").strip()
+        # Verifica formato e correzione internazionale
+        if phone.startswith("0"):
+            phone = "39" + phone  # Aggiunge prefisso internazionale italiano
+        elif phone.startswith("39"):
+            pass  # già ok
+        elif phone.startswith("3"):
+            phone = "39" + phone  # Aggiunge +39 se manca
+        else:
+            st.error("⚠️ Il numero non sembra valido per WhatsApp Web.")
+            st.stop()
 
-            msg = f"""{ordine_pulito}
+        st.success(f"📱 Numero WhatsApp: {phone}")
+
+        # Prepara messaggio
+        ordine_pulito = order_input.replace("#WW", "").strip()
+
+        msg = f"""{ordine_pulito}
 
 *ANTEPRIMA DI STAMPA*
 
@@ -55,10 +69,8 @@ Le ricordo che ha a disposizione 3 modifiche gratuite (ex: variazione colori, ag
 Cordiali saluti,
 WowStampa"""
 
-            whatsapp_url = f"https://web.whatsapp.com/send?phone={phone}&text={urllib.parse.quote(msg)}"
-            st.markdown(f"[📤 Clicca qui per aprire WhatsApp Web con il messaggio]({whatsapp_url})", unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ L'ordine non contiene un numero di telefono.")
+        whatsapp_url = f"https://web.whatsapp.com/send?phone={phone}&text={urllib.parse.quote(msg)}"
+
+        st.markdown(f"[📤 Clicca qui per aprire WhatsApp Web con il messaggio]({whatsapp_url})", unsafe_allow_html=True)
     else:
         st.error("❌ Ordine non trovato.")
-
